@@ -34,7 +34,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController _meaningController = TextEditingController();
   final DatabaseService _databaseService = DatabaseService();
 
-  final Future<List<Word>> _wordList = DatabaseService()
+  Future<List<Word>> _wordList = DatabaseService()
       .databaseConfig()
       .then((_) => DatabaseService().selectWords());
 
@@ -50,11 +50,14 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Flutter App')),
       floatingActionButton: FloatingActionButton(
-        onPressed: showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => addWordDialog(),
-        ),
+        onPressed: () {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => addWordDialog(),
+          );
+        },
+        child: const Icon(Icons.add),
       ),
       body: Container(
         child: FutureBuilder(
@@ -160,6 +163,9 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget addWordDialog() {
+    _nameController.text = "";
+    _meaningController.text = "";
+
     return AlertDialog(
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -205,6 +211,113 @@ class _MyHomePageState extends State<MyHomePage> {
             },
             child: const Text('생성'),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget updateWordDialog(Future<Word> word) {
+    return AlertDialog(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text("단어 수정"),
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
+      content: FutureBuilder(
+        future: word,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            _nameController.text = snapshot.data!.name;
+            _meaningController.text = snapshot.data!.meaning;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(hintText: "단어를 입력하세요"),
+                ),
+                TextField(
+                  controller: _meaningController,
+                  decoration: const InputDecoration(hintText: "뜻을 입력하세요"),
+                ),
+                const SizedBox(
+                  height: 15,
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    _databaseService
+                        .updateWord(Word(
+                            id: snapshot.data!.id,
+                            name: _nameController.text,
+                            meaning: _meaningController.text))
+                        .then((result) {
+                      if (result) {
+                        Navigator.of(context).pop();
+                        setState(() {
+                          _wordList = _databaseService.selectWords();
+                        });
+                      } else {
+                        print('update error');
+                      }
+                    });
+                  },
+                  child: const Text('수정'),
+                ),
+              ],
+            );
+          } else if (snapshot.hasError) {
+            return const Center(
+              child: Text('Error occurred'),
+            );
+          } else {
+            return const Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget deleteWordDialog(int id) {
+    return AlertDialog(
+      title: const Text('이 단어를 정말 삭제하시겠습니까?'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  _databaseService.deleteWord(id).then((result) {
+                    if (result) {
+                      Navigator.of(context).pop();
+                      setState(() {
+                        _wordList = _databaseService.selectWords();
+                      });
+                    } else {
+                      print('delete error');
+                    }
+                  });
+                },
+                child: const Text("예"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text("아니오"),
+              ),
+            ],
+          )
         ],
       ),
     );

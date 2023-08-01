@@ -92,14 +92,14 @@ class DatabaseService {
   }
 
   // DELETE One -------------------------------------
-  Future<bool> deleteWord(Word word) async {
+  Future<bool> deleteWord(int id) async {
     final Database db = await database;
 
     try {
       db.delete(
         'words',
         where: 'id = ?',
-        whereArgs: [word.id],
+        whereArgs: [id],
       );
       return true;
     } catch (err) {
